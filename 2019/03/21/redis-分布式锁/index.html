@@ -79,15 +79,18 @@
 
 
 
+<meta name="description" content="一: 分布式锁要求 在任意时刻只能有一个线程可持有该锁。 该锁只能被加锁人解锁。 不会发生死锁。  二: 分布式锁实现基于Jedis 实现分布式锁引入依赖123456&amp;lt;!-- https://mvnrepository.com/artifact/redis.clients/jedis --&amp;gt;&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;redis.clien">
 <meta name="keywords" content="redis">
 <meta property="og:type" content="article">
 <meta property="og:title" content="redis 分布式锁">
 <meta property="og:url" content="http://yoursite.com/2019/03/21/redis-分布式锁/index.html">
 <meta property="og:site_name" content="宗帅的博客">
+<meta property="og:description" content="一: 分布式锁要求 在任意时刻只能有一个线程可持有该锁。 该锁只能被加锁人解锁。 不会发生死锁。  二: 分布式锁实现基于Jedis 实现分布式锁引入依赖123456&amp;lt;!-- https://mvnrepository.com/artifact/redis.clients/jedis --&amp;gt;&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;redis.clien">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-03-22T01:45:21.243Z">
+<meta property="og:updated_time" content="2019-03-25T03:09:36.849Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="redis 分布式锁">
+<meta name="twitter:description" content="一: 分布式锁要求 在任意时刻只能有一个线程可持有该锁。 该锁只能被加锁人解锁。 不会发生死锁。  二: 分布式锁实现基于Jedis 实现分布式锁引入依赖123456&amp;lt;!-- https://mvnrepository.com/artifact/redis.clients/jedis --&amp;gt;&amp;lt;dependency&amp;gt;    &amp;lt;groupId&amp;gt;redis.clien">
 
 
 
@@ -317,7 +320,18 @@
       
 
       
-        
+        <h1 id="一-分布式锁要求"><a href="#一-分布式锁要求" class="headerlink" title="一: 分布式锁要求"></a>一: 分布式锁要求</h1><ol>
+<li>在任意时刻只能有一个线程可持有该锁。</li>
+<li>该锁只能被加锁人解锁。</li>
+<li>不会发生死锁。</li>
+</ol>
+<h1 id="二-分布式锁实现"><a href="#二-分布式锁实现" class="headerlink" title="二: 分布式锁实现"></a>二: 分布式锁实现</h1><h2 id="基于Jedis-实现分布式锁"><a href="#基于Jedis-实现分布式锁" class="headerlink" title="基于Jedis 实现分布式锁"></a>基于Jedis 实现分布式锁</h2><h3 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;!-- https://mvnrepository.com/artifact/redis.clients/jedis --&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;redis.clients&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;jedis&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;2.9.0&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure>
+<h3 id="加锁的代码"><a href="#加锁的代码" class="headerlink" title="加锁的代码"></a>加锁的代码</h3><h4 id="Jedis-提供的方法"><a href="#Jedis-提供的方法" class="headerlink" title="Jedis 提供的方法"></a>Jedis 提供的方法</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">  *</span><br><span class="line">  * @param jedis  jedis客户端</span><br><span class="line">  * @param key    锁的key</span><br><span class="line">  * @param value  客户端标识</span><br><span class="line">  * @param nxxx   NX 或者 XX 。 NX Only set the key if it does not already exist.  XX Only set the key if it already exist</span><br><span class="line">  * @param expx   EX 或者 PX。  xpire time units: EX = seconds; PX = milliseconds</span><br><span class="line">  * @param time   expire time in the units of expx</span><br><span class="line">  * @return</span><br><span class="line">  */</span><br><span class="line"> public boolean lockRedis(Jedis jedis,String key, String value, String nxxx, String expx, int time)&#123;</span><br><span class="line">    String status  =  jedis.set(key,value,nxxx,expx,time);</span><br><span class="line">    if(&quot;OK&quot;.equals(status))&#123;</span><br><span class="line">        return true;</span><br><span class="line">    &#125;else&#123;</span><br><span class="line">        return false;</span><br><span class="line">    &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+<p><em>ps:  这里主要说一下 nxxx 的作用  NX 只有 当 key不存在的时候进行 set操作。xx 只有当key存在的时候进行set操作。 所以显而易见 我们固定传 NX</em></p>
+<h4 id="lua-script-进行加锁"><a href="#lua-script-进行加锁" class="headerlink" title="lua script 进行加锁"></a>lua script 进行加锁</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> *</span><br><span class="line"> * @param jedis   jedis客户端</span><br><span class="line"> * @param key     锁的key</span><br><span class="line"> * @param value   客户端标识</span><br><span class="line"> * @param time    超时时间</span><br><span class="line"> * @return</span><br><span class="line"> */</span><br><span class="line">public boolean lockRedis(Jedis jedis,String key, String value, int time)&#123;</span><br><span class="line">    String luaScript = &quot;&quot;</span><br><span class="line">            + &quot;\nlocal respStr = tonumber(redis.call(&apos;SETNX&apos;, KEYS[1],ARGV[1]));&quot;</span><br><span class="line">            + &quot;\nredis.call(&apos;PEXPIRE&apos;,KEYS[1],ARGV[2]);&quot;</span><br><span class="line">            + &quot;\nreturn respStr&quot;;</span><br><span class="line">    List&lt;String&gt; keys = new ArrayList&lt;String&gt;();</span><br><span class="line">    keys.add(key);</span><br><span class="line">    List&lt;String&gt; args = new ArrayList&lt;String&gt;();</span><br><span class="line">    args.add(value);</span><br><span class="line">    args.add(time+&quot;&quot;);</span><br><span class="line">    Long ret = (Long) jedis.eval(luaScript, keys, args);</span><br><span class="line">    if( new Long(1).equals(ret))&#123;</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="解锁代码"><a href="#解锁代码" class="headerlink" title="解锁代码"></a>解锁代码</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> *</span><br><span class="line"> * @param jedis  jedis客户端</span><br><span class="line"> * @param key    锁的key</span><br><span class="line"> * @param value  客户端标识</span><br><span class="line"> * @return</span><br><span class="line"> */</span><br><span class="line">public boolean unlockRedis(Jedis jedis,String key, String value)&#123;</span><br><span class="line">    String luaScript=&quot;&quot;</span><br><span class="line">            +&quot;\nlocal v = redis.call(&apos;GET&apos;, KEYS[1]);&quot;</span><br><span class="line">            +&quot;\nlocal r = 0;&quot;</span><br><span class="line">            +&quot;\nif v == ARGV[1] then&quot;</span><br><span class="line">            +&quot;\nr = tonumber(redis.call(&apos;DEL&apos;,KEYS[1]));&quot;</span><br><span class="line">            +&quot;\nend&quot;</span><br><span class="line">            +&quot;\nreturn r&quot;;</span><br><span class="line">    List&lt;String&gt; keys = new ArrayList&lt;String&gt;();</span><br><span class="line">    keys.add(key);</span><br><span class="line">    List&lt;String&gt; args = new ArrayList&lt;String&gt;();</span><br><span class="line">    args.add(value);</span><br><span class="line">    Long r=(Long) jedis.eval(luaScript, keys, args);</span><br><span class="line">    if( new Long(1).equals(r))&#123;</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    return false;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><em>ps: redis 会在 lua 命令执行结束之后再执行其他命令。</em></p>
+
       
     </div>
     
@@ -407,8 +421,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -461,6 +484,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#一-分布式锁要求"><span class="nav-number">1.</span> <span class="nav-text">一: 分布式锁要求</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#二-分布式锁实现"><span class="nav-number">2.</span> <span class="nav-text">二: 分布式锁实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#基于Jedis-实现分布式锁"><span class="nav-number">2.1.</span> <span class="nav-text">基于Jedis 实现分布式锁</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#引入依赖"><span class="nav-number">2.1.1.</span> <span class="nav-text">引入依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#加锁的代码"><span class="nav-number">2.1.2.</span> <span class="nav-text">加锁的代码</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Jedis-提供的方法"><span class="nav-number">2.1.2.1.</span> <span class="nav-text">Jedis 提供的方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#lua-script-进行加锁"><span class="nav-number">2.1.2.2.</span> <span class="nav-text">lua script 进行加锁</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#解锁代码"><span class="nav-number">2.2.</span> <span class="nav-text">解锁代码</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
